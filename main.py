@@ -13,8 +13,8 @@ load_dotenv()
 '''
 common_names = {
     "deployments": "Camara Trampa y Grabadoras v 1.1 cumulo",
-    #"individuals": "Pequeños Mamíferos v 1.1",
-    #"erie": "ERIE - Evaluacion Ecosistemica"
+    "individuals": "Pequeños Mamíferos v 1.1",
+    "erie": "ERIE - Evaluacion Ecosistemica"
 }
 
 

@@ -124,44 +124,47 @@ def clean_kobo_individual_report(survey):
     entries = []
     for report in survey["reports"]:
         if "mouse_repeat" in report.keys():
-            data = {
-                "date_trap": parse_to_utc(report["Fecha_y_Hora"]),
-                "metadata": add_attachments(report,survey["content"]),
-                "kobo_url": survey["kobo_url"],
-                "user": report["_submitted_by"]
-            }
-
-            if report["_Registrar_el_sitio_con_GPS_o"] == "celular":
-                data.update({
-                    "latitude": str(report["_geolocation"][0]),
-                    "longitude": str(report["_geolocation"][1])
-                })
-            elif report["_Registrar_el_sitio_con_GPS_o"] == "gps":
-                lat = [(key, value) for key, value in report.items() if key.startswith("Latitud_en_grados_de_ales_de_la_trampa")][0][1]
-                lng = [(key, value) for key, value in report.items() if key.startswith("Longitud_en_grados_d_ales_de_la_trampa")][0][1]
-                
-                data.update({
-                    "latitude": lat,
-                    "longitude": lng
-                })
+            files = add_attachments(report,survey["content"])
             
             for individual in report["mouse_repeat"]:
+                
+                data = {
+                    "date_trap": parse_to_utc(report["Fecha_y_Hora"]),
+                    "kobo_url": survey["kobo_url"],
+                    "user": report["_submitted_by"]
+                }
+    
+                if report["_Registrar_el_sitio_con_GPS_o"] == "celular":
+                    data.update({
+                        "latitude": str(report["_geolocation"][0]),
+                        "longitude": str(report["_geolocation"][1])
+                    })
+                elif report["_Registrar_el_sitio_con_GPS_o"] == "gps":
+                    lat = [(key, value) for key, value in report.items() if key.startswith("Latitud_en_grados_de_ales_de_la_trampa")][0][1]
+                    lng = [(key, value) for key, value in report.items() if key.startswith("Longitud_en_grados_d_ales_de_la_trampa")][0][1]
+                    
+                    data.update({
+                        "latitude": lat,
+                        "longitude": lng
+                    })
                 data.update({
                     "clave_posicion_malla": individual["mouse_repeat/v1"]
                 })
 
                 # fill with individual info the metadata field
                 # the metadata is build as a string, but holds a json
-                data["metadata"] = "{ archivos: " + data["metadata"] + ", caracteristicas: {"
+                metadata = "{ archivos: " + files + ", caracteristicas: {"
                 for idx,(q,ans) in enumerate(individual.items()):
                     question = q.split("/")[1]
                     field_label = list(
                                         filter(lambda question_label: "name" in question_label and question_label['name'] == question, survey["content"]))
                     field_name = (field_label[0]["label"][0] if "label" in field_label[0].keys() else question) if len(field_label) > 0 else question
-                    if question != "v1" or not question.startswith("Foto") or question != "c2" or question != "c3":
-                        data["metadata"] += "pregunta_" + str(idx) + ": { nombre: \"" + field_name + "\", respuesta: \"" + ans + "\"},"
+                    if not question.startswith("Foto") or question != "c2" or question != "c3":
+                        metadata += "pregunta_" + str(idx) + ": { nombre: \"" + field_name + "\", respuesta: \"" + ans + "\"},"
                 
-                data["metadata"] += "} }"
+                metadata += "} }"
+
+                data.update({"metadata": metadata})
 
                 if "mouse_repeat/Indique_el_n_mero_de_e_se_le_va_a_colocar" in individual:
                     data.update({
