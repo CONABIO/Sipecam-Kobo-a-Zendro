@@ -60,9 +60,9 @@ def build_n_post_deployment_query(session,reports,common_name,survey_type):
                                 })
         # generate a report 
         deployments_created = json.loads(response.text)["data"]
-        print("Fueron creados %d reportes satisfactoriamente." % len(deployments_created))
+        print("\n\nFueron creados %d reportes satisfactoriamente.\n\n" % len(deployments_created))
     else:
-        print("No hay nuevos desplieges que registrar.")
+        print("\n\nNo hay nuevos desplieges que registrar.\n\n")
 
 
 def build_n_post_individuals_n_erie_query(session,reports,survey_type):
@@ -166,8 +166,8 @@ def build_n_post_individuals_n_erie_query(session,reports,survey_type):
                 print(response.status_code,response.text)
 
         if len(deployments_created) > 0:
-            print("Fueron creados %d reportes de %s satisfactoriamente." % (
+            print("\n\nFueron creados %d reportes de %s satisfactoriamente.\n\n" % (
                 len(deployments_created), "individuos" if survey_type == "individuals" else "erie"))
 
     else:
-        print("No hay nuevas capturas de individuos que registrar.")
+        print("\n\nNo hay nuevas capturas de %s que registrar.\n\n" % ("individuos" if survey_type == "individuals" else "erie"))
