@@ -44,7 +44,7 @@ def build_n_post_deployment_query(session,reports,common_name,survey_type):
                 )
         deployments = [
             *deployments,
-            *match_deployment_to_node(clean_data,cumulus_data)]
+            *match_deployment_to_node(clean_data,cumulus_data,session)]
         # before making another request in the loop
         # wait 2 second to not overload the server
         time.sleep(2)
@@ -100,7 +100,7 @@ def build_n_post_individuals_n_erie_query(session,reports,survey_type):
         
         deployments = [
             *deployments,
-            *match_deployment_to_node(data,cumulus_data)]
+            *match_deployment_to_node(data,cumulus_data,session)]
             
         # before making another request in the loop
         # wait 2 second to not overload the server

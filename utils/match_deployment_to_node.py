@@ -1,9 +1,12 @@
+import os
+import json
+
 from helpers.clean_coordinates import clean_coordinates
 from helpers.inverse_haversine import inverse_haversine
 from helpers.validate_coordinates import validate_coordinates
 
 
-def match_deployment_to_node(deployments, cumulus):
+def match_deployment_to_node(deployments, cumulus, session):
     """
     Given a list of deployments and a cumulus dict with its
     associated nodes and devices, matches a deployment with
@@ -13,6 +16,9 @@ def match_deployment_to_node(deployments, cumulus):
         deployments (list): A list of deployments
 
         cumulus (dict):   A dict containing the cumulus info.
+
+        session (object):       Session object with auth credential
+                                of zendro.
 
     Returns:
         matched_deployments (dict): A dict containing the matched
@@ -46,6 +52,51 @@ def match_deployment_to_node(deployments, cumulus):
 
                     else:
                         m_deployment["device_id"] = device["id"]
+
+            if "device_id" not in m_deployment:
+                """
+                if device serial is not present in cumulus devices
+                then retrieve device id from zendro server
+                """
+                response = session.post(os.getenv("ZENDRO_URL") 
+                            + "/graphql",json={
+                                "query": """
+                                    query (
+                                        $limit: Int!,
+                                        $field: physical_deviceField,
+                                        $value: String,
+                                        $valueType: InputType,
+                                        $operator: GenericPrestoSqlOperator
+                                    )   {
+                                          physical_devices(search: {
+                                            field: $field,
+                                            value: $value,
+                                            valueType: $valueType,
+                                            operator: $operator
+                                          }, pagination: { limit: $limit }) {
+                                            id
+                                            device_deploymentsFilter(pagination:{limit:0}) {
+                                                date_deployment
+                                            }
+                                          }
+                                        }
+                                """,
+                                "variables": {
+                                    "limit": 0,
+                                    "field": "serial_number",
+                                    "value": d["device_serial"],
+                                    "valueType": "String",
+                                    "operator": "eq"
+                                }
+                            })
+                
+                device_info = json.loads(response.text)["data"]["physical_devices"][0]
+
+                for deployment in device_info["device_deploymentsFilter"]:
+                    if deployment["date_deployment"] == d["date_deployment"]:
+                        registered = True
+                
+                m_deployment["device_id"] = device_info["id"]
 
         elif "individualsFilter" in cumulus.keys():
             for individual in cumulus["individualsFilter"]:
