@@ -1,5 +1,6 @@
 import os
 import json
+from os.path import exists as file_exists
 
 from helpers.clean_coordinates import clean_coordinates
 from helpers.inverse_haversine import inverse_haversine
@@ -25,78 +26,81 @@ def match_deployment_to_node(deployments, cumulus, session):
                                     deployments.
     """
 
+    if "devicesFilter" in cumulus.keys():
+        cumulus_deployments = []
+        
+        filename = "extracted_reports.log"
+        if file_exists(filename):
+            with open(filename, 'r') as f:
+                lines_in_file = [line.replace('\n','') for line in f]
+        
     matched_deployments = []
+    log_reports = []
     for d in deployments:
         m_deployment = {}
         registered = False
         if "devicesFilter" in cumulus.keys():
-            for device in cumulus["devicesFilter"]:
-                """
-                Search for the device id by the device serial number
-                """
-                if d["device_serial"] == device["serial_number"]:
-                    if len(device["device_deploymentsFilter"]) > 0:
-                        """
-                        if device has deployments, search if deployment
-                        has not already been registered
-                        """
-                        for date in device["device_deploymentsFilter"]:
-                            if date["date_deployment"] == d["date_deployment"]:
-                                """
-                                if found the same date_deployment for this device
-                                then the deployment has already been registered
-                                """
-                                registered = True
-                        if not registered:
-                            m_deployment["device_id"] = device["id"]
+            device_reports = [r.split(",")[2] for r in lines_in_file if r.split(",")[1] == d["device_serial"]]
 
-                    else:
+            for date_report in device_reports:
+                """
+                if device has deployments, search if deployment
+                has not already been registered
+                """
+                if date_report == d["date_deployment"]:
+                    """
+                    if found the same date_deployment for this device
+                    then the deployment has already been registered
+                    """
+                    registered = True
+
+            if not registered:
+                for device in cumulus["devicesFilter"]:
+                    """
+                    Search for the device id by the device serial number
+                    """
+                    if d["device_serial"] == device["serial_number"]:
                         m_deployment["device_id"] = device["id"]
 
-            if "device_id" not in m_deployment:
-                """
-                if device serial is not present in cumulus devices
-                then retrieve device id from zendro server
-                """
-                response = session.post(os.getenv("ZENDRO_URL") 
-                            + "/graphql",json={
-                                "query": """
-                                    query (
-                                        $limit: Int!,
-                                        $field: physical_deviceField,
-                                        $value: String,
-                                        $valueType: InputType,
-                                        $operator: GenericPrestoSqlOperator
-                                    )   {
-                                          physical_devices(search: {
-                                            field: $field,
-                                            value: $value,
-                                            valueType: $valueType,
-                                            operator: $operator
-                                          }, pagination: { limit: $limit }) {
-                                            id
-                                            device_deploymentsFilter(pagination:{limit:0}) {
-                                                date_deployment
+                if "device_id" not in m_deployment:
+                    """
+                    if device serial is not present in cumulus devices
+                    then retrieve device id from zendro server
+                    """
+                    response = session.post(os.getenv("ZENDRO_URL") 
+                                + "/graphql",json={
+                                    "query": """
+                                        query (
+                                            $limit: Int!,
+                                            $field: physical_deviceField,
+                                            $value: String,
+                                            $valueType: InputType,
+                                            $operator: GenericPrestoSqlOperator
+                                        )   {
+                                            physical_devices(search: {
+                                                field: $field,
+                                                value: $value,
+                                                valueType: $valueType,
+                                                operator: $operator
+                                            }, pagination: { limit: $limit }) {
+                                                id
+                                                device_deploymentsFilter(pagination:{limit:0}) {
+                                                    date_deployment
+                                                }
                                             }
-                                          }
-                                        }
-                                """,
-                                "variables": {
-                                    "limit": 0,
-                                    "field": "serial_number",
-                                    "value": d["device_serial"],
-                                    "valueType": "String",
-                                    "operator": "eq"
-                                }
-                            })
+                                            }
+                                    """,
+                                    "variables": {
+                                        "limit": 0,
+                                        "field": "serial_number",
+                                        "value": d["device_serial"],
+                                        "valueType": "String",
+                                        "operator": "eq"
+                                    }
+                                })
+                    device_info = json.loads(response.text)["data"]["physical_devices"][0]
+                    m_deployment["device_id"] = device_info["id"]
                 
-                device_info = json.loads(response.text)["data"]["physical_devices"][0]
-
-                for deployment in device_info["device_deploymentsFilter"]:
-                    if deployment["date_deployment"] == d["date_deployment"]:
-                        registered = True
-                
-                m_deployment["device_id"] = device_info["id"]
 
         elif "individualsFilter" in cumulus.keys():
             for individual in cumulus["individualsFilter"]:
@@ -176,4 +180,7 @@ def match_deployment_to_node(deployments, cumulus, session):
             ):
                 matched_deployments.append(m_deployment)
 
-    return matched_deployments
+            if "devicesFilter" in cumulus.keys():
+                log_reports.append(cumulus["id"] + "," + d["device_serial"] + "," + d["date_deployment"])
+
+    return [matched_deployments,log_reports]

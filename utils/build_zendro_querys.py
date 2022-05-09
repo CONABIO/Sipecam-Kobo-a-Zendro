@@ -28,6 +28,7 @@ def build_n_post_deployment_query(session,reports,common_name,survey_type):
      """
 
     deployments = []
+    log_reports = []
     for r in reports:
         """
             Match reports with its node id, cumulus id and
@@ -42,9 +43,17 @@ def build_n_post_deployment_query(session,reports,common_name,survey_type):
                     int(r["name"].replace(common_name,"")),
                     survey_type
                 )
+        
+        matched_deployments,logs = match_deployment_to_node(clean_data,cumulus_data,session)
+        
+        log_reports = [
+            *log_reports,
+            *logs
+        ]
+
         deployments = [
             *deployments,
-            *match_deployment_to_node(clean_data,cumulus_data,session)]
+            *matched_deployments]
         # before making another request in the loop
         # wait 2 second to not overload the server
         time.sleep(2)
@@ -61,6 +70,11 @@ def build_n_post_deployment_query(session,reports,common_name,survey_type):
         # generate a report 
         deployments_created = json.loads(response.text)["data"]
         print("\n\nFueron creados %d reportes satisfactoriamente.\n\n" % len(deployments_created))
+        
+        for r in log_reports:
+            filename = "extracted_reports.log"
+            with open(filename, 'a') as log_file:
+                log_file.writelines(r + "\n")
     else:
         print("\n\nNo hay nuevos desplieges que registrar.\n\n")
 
@@ -100,7 +114,7 @@ def build_n_post_individuals_n_erie_query(session,reports,survey_type):
         
         deployments = [
             *deployments,
-            *match_deployment_to_node(data,cumulus_data,session)]
+            *match_deployment_to_node(data,cumulus_data,session)[0]]
             
         # before making another request in the loop
         # wait 2 second to not overload the server
