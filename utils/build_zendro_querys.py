@@ -72,7 +72,7 @@ def build_n_post_deployment_query(session,reports,common_name,survey_type):
         print("\n\nFueron creados %d reportes satisfactoriamente.\n\n" % len(deployments_created))
         
         for r in log_reports:
-            filename = "extracted_reports.log"
+            filename = os.getenv('LOG_PATH') + "extracted_reports.log"
             with open(filename, 'a') as log_file:
                 log_file.writelines(r + "\n")
     else:
