@@ -27,8 +27,6 @@ def match_deployment_to_node(deployments, cumulus, session):
     """
 
     if "devicesFilter" in cumulus.keys():
-        cumulus_deployments = []
-        
         filename = os.getenv('LOG_PATH') + "extracted_reports.log"
         if file_exists(filename):
             with open(filename, 'r') as f:

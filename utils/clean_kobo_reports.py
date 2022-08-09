@@ -35,7 +35,7 @@ def clean_kobo_deployment_report(survey):
                 """
                     If string matches, then cellphone was used for
                     location record
-                   """
+                """
                 latlng = [(key, value) for key, value in report.items() if key.startswith("Registre_la_ubicaci_n_de_la_C_mara")]
                 lat = latlng[0][1].split(" ")[0]
                 lng = latlng[0][1].split(" ")[1]
@@ -43,7 +43,7 @@ def clean_kobo_deployment_report(survey):
                 """
                     If not, then gps was used for location record,
                     and so, the lat/long was recorded in two fields
-                   """
+                """
                 lat = [(key, value) for key, value in report.items() if key.startswith("Latitud_en_grados_de_e_coloc_la")][0][1]
                 lng = [(key, value) for key, value in report.items() if key.startswith("Longitud_en_grados_d_e_coloc_la")][0][1]
 
@@ -63,13 +63,15 @@ def clean_kobo_deployment_report(survey):
         elif "grabadora_audi" in report["Dispositivo"]:
             # obtaing kay-value pair for device serial question in survey
             # this line obtains two tuples for the two recoders deployed
-            devices_serial = [(key, value) for key, value in report.items() if key.startswith("Registre_el_n_mero_s_er_par_de_grabadoras")]
+            devices_serial = [(key, value) for key, value in report.items() 
+                    if key.startswith("Registre_el_n_mero_s_er_par_de_grabadoras")
+                        or key.startswith("Registre_el_n_mero_s_do_par_de_grabadoras")]
 
             if gps[0][1] == "celular__recomendado":
                 """
                     If string matches with gqp answer, then cellphone 
                     was used for location record
-                   """
+                """
                 latlng = [(key, value) for key, value in report.items() 
                     if key.startswith("Registre_la_posici_n_er_par_de_grabadoras")
                         or key.startswith("Registre_la_posici_n_do_par_de_grabadoras")]
@@ -80,7 +82,7 @@ def clean_kobo_deployment_report(survey):
                 """
                     If not, then gps was used for location record,
                     and so, the lat/long was recorded in two fields
-                   """
+                """
                 lat = [(key, value) for key, value in report.items() 
                             if key.startswith("Latitud_en_grados_de_audible_ultras_nica")][0][1]
                 
