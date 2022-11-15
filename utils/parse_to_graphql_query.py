@@ -37,7 +37,7 @@ def parse_to_graphql_query(deployments,survey_type):
              + "latitude: " +  d["latitude"] + ","
              + "longitude: " + d["longitude"] + ","
              + "altitude: " + str(d["altitude"]) + ","
-             + "metadata: " + d["metadata"] + ","
+             + "metadata: " + d["metadata"].replace('\n','') + ","
              + "clave_posicion_malla: \"" + d["clave_posicion_malla"] + "\",")
 
             if "arete" in d:
